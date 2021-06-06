@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -56,6 +57,7 @@ func (m *Repository) About(w http.ResponseWriter, r *http.Request) {
 
 // Reservation renders the make a reservation page and displays form
 func (m *Repository) Reservation(w http.ResponseWriter, r *http.Request) {
+	log.Println("trigger get ")
 	var emptyReservation models.Reservation
 	data := make(map[string]interface{})
 	data["reservation"] = emptyReservation
@@ -68,6 +70,7 @@ func (m *Repository) Reservation(w http.ResponseWriter, r *http.Request) {
 
 // PostReservation handles the posting of a reservation form
 func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
+	log.Println("trigger post ")
 	err := r.ParseForm()
 	if err != nil {
 		helpers.ServerError(w,err)
@@ -86,6 +89,7 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 	endDate, err := time.Parse(layout,ed)
 	if err != nil {
 		helpers.ServerError(w,err)
+		return
 	}
 
 	roomID, err := strconv.Atoi(r.Form.Get("room_id"))
@@ -108,7 +112,7 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 	form.Required("first_name", "last_name", "email")
 	form.MinLength("first_name", 3)
 	form.IsEmail("email")
-
+	log.Println("walk here")
 	if !form.Valid() {
 		data := make(map[string]interface{})
 		data["reservation"] = reservation
@@ -119,10 +123,28 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//insert into db
-	err = m.DB.InsertReservation(reservation)
+	newReservationID, err := m.DB.InsertReservation(reservation)
+
 	if err != nil {
 		helpers.ServerError(w,err)
+		return
 	}
+
+	restriction := models.RoomRestriction{
+		StartDate:    startDate,
+		EndDate:      endDate,
+		RoomID:       roomID,
+		ReservationID: newReservationID,
+		RestrictionID: 1,
+	}
+
+	err = m.DB.InsertRoomRestriction(restriction)
+	if err != nil {
+		
+		helpers.ServerError(w,err)
+		return
+	}
+
 
 	m.App.Session.Put(r.Context(), "reservation", reservation)
 
