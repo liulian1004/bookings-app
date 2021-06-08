@@ -10,11 +10,11 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/tsawler/bookings-app/internal/config"
+	"github.com/tsawler/bookings-app/internal/driver"
 	"github.com/tsawler/bookings-app/internal/handlers"
 	"github.com/tsawler/bookings-app/internal/helpers"
 	"github.com/tsawler/bookings-app/internal/models"
 	"github.com/tsawler/bookings-app/internal/render"
-	"github.com/tsawler/bookings-app/internal/driver"
 )
 
 const portNumber = ":8080"
@@ -31,6 +31,17 @@ func main() {
 		log.Fatal(err)
 	}
 	defer db.SQL.Close()
+	defer close(app.MailChan) 
+	fmt.Println("start mail listener")
+	listenForMail()
+
+	
+
+	// go package to send email
+	// from := "me@test.com"
+	// auth := smtp.PlainAuth("", from, "serverpassword", "localhost")
+	// err = smtp.SendMail("localhost:1025", auth, from,[]string{"user1@user.com", "user2@usr.com"}, []byte("hello world"))
+
 
 	fmt.Println(fmt.Sprintf("Staring application on port %s", portNumber))
 
@@ -53,6 +64,9 @@ func run() (*driver.DB, error) {
 	gob.Register(models.User{})
 	gob.Register(models.Room{})
 	gob.Register(models.Restriction{})
+
+	mailChan := make(chan models.MailData) // init channel for mail data
+	app.MailChan = mailChan // need to remember close chan
 	
 	// change this to true when in production
 	app.InProduction = false
