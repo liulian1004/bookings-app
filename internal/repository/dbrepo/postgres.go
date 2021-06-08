@@ -2,6 +2,7 @@ package dbrepo
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/tsawler/bookings-app/internal/models"
@@ -71,9 +72,10 @@ func (m *postgresDBRepo) SearchAvailabilityByDatesByRoomID(start, end time.Time,
 	var numRows int
 	err := row.Scan(&numRows)
 	if err != nil {
+		log.Println("err:", err)
 		return false, err
 	}
-	if numRows == 0 {
+	if numRows != 0 {
 		return false, nil
 	}
 
