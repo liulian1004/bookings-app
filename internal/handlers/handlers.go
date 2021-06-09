@@ -425,3 +425,55 @@ func (m *Repository) BookRoom(w http.ResponseWriter, r *http.Request) {
 	m.App.Session.Put(r.Context(), "reservation",res) // update session info
 	http.Redirect(w, r, "/make-reservation", http.StatusSeeOther)
 }
+
+func (m *Repository) ShowLogin(w http.ResponseWriter, r *http.Request) {
+	render.Template(w,r, "log.page.tmpl", &models.TemplateData{
+		Form: forms.New(nil),
+	})
+}
+
+func (m *Repository) PostShowLogin(w http.ResponseWriter, r *http.Request) {
+	m.App.Session.RenewToken(r.Context()) // good pratice, each time when login/logout, just renew the token
+	err := r.ParseForm()
+
+	if err != nil {
+		log.Println(err)
+	}
+	email := r.Form.Get("email")
+	password := r.Form.Get("password")
+	form := forms.New(r.PostForm)
+	form.Required("email","password")
+	form.IsEmail("email")
+
+	if !form.Valid(){
+		render.Template(w,r,"log.page.tmpl", &models.TemplateData{
+			Form: form,
+		})
+		return
+	}
+
+	id, _, err := m.DB.Authenticate(email, password)
+	if err != nil {
+		log.Println(err)
+		m.App.Session.Put(r.Context(), "error", "Wrong Password or email")
+		http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+		return
+	}
+	//store the id into session if it's login 
+	m.App.Session.Put(r.Context(), "user_id", id)
+	m.App.Session.Put(r.Context(), "flash", "Login Successfully")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func (m *Repository) Logout(w http.ResponseWriter, r *http.Request) {
+	// destory the session
+	m.App.Session.Destroy(r.Context())
+	//renew session token
+	m.App.Session.RenewToken(r.Context())
+	m.App.Session.Put(r.Context(), "flash", "Logout Successfully")
+	http.Redirect(w,r, "/", http.StatusSeeOther)
+}
+
+func (m *Repository) AdminDashboard(w http.ResponseWriter, r *http.Request){
+	render.Template(w,r, "admin.page.tmpl", &models.TemplateData{})
+}
