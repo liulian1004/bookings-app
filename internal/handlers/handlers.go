@@ -477,3 +477,41 @@ func (m *Repository) Logout(w http.ResponseWriter, r *http.Request) {
 func (m *Repository) AdminDashboard(w http.ResponseWriter, r *http.Request){
 	render.Template(w,r, "admin.page.tmpl", &models.TemplateData{})
 }
+
+func (m *Repository) AdminNewReservation(w http.ResponseWriter, r *http.Request){
+	log.Println("in to rep_new")
+	reservations, err := m.DB.AllNewReservation()
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+	data := make(map[string]interface{}) // not sure the value structure, use interface
+	data["reservations"] = reservations
+	log.Println("walk here_new")
+	render.Template(w,r, "admin-new-reservation.page.tmpl", &models.TemplateData{
+		Data: data,
+	})
+}
+
+func (m *Repository) AdminAllReservation(w http.ResponseWriter, r *http.Request){
+	log.Println("in to rep_all")
+	reservations, err := m.DB.AllReservation()
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+	data := make(map[string]interface{}) // not sure the value structure, use interface
+	data["reservations"] = reservations
+	log.Println("walk here_all")
+	render.Template(w,r, "admin-all-reservation.page.tmpl", &models.TemplateData{
+		Data: data,
+	})
+}
+
+func (m *Repository) AdminReservationCalender(w http.ResponseWriter, r *http.Request){
+	render.Template(w,r, "admin-reservation-calender.page.tmpl", &models.TemplateData{})
+}
+
+func (m *Repository) AdminShowReservation(w http.ResponseWriter, r *http.Request) {
+	render.Template(w,r, "admin-reservation-show.page.tmpl", &models.TemplateData{})
+}

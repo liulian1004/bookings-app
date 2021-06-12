@@ -3,16 +3,20 @@ package render
 import (
 	"bytes"
 	"fmt"
-	"github.com/justinas/nosurf"
-	"github.com/tsawler/bookings-app/internal/config"
-	"github.com/tsawler/bookings-app/internal/models"
 	"html/template"
 	"log"
 	"net/http"
 	"path/filepath"
+	"time"
+
+	"github.com/justinas/nosurf"
+	"github.com/tsawler/bookings-app/internal/config"
+	"github.com/tsawler/bookings-app/internal/models"
 )
 
-var functions = template.FuncMap{}
+var functions = template.FuncMap{
+	"humanDate": HumanDate,
+}
 
 var app *config.AppConfig
 
@@ -21,6 +25,10 @@ func NewRenderer(a *config.AppConfig) {
 	app = a
 }
 
+//transfer the time fromat to the human readable format
+func HumanDate(t time.Time) string {
+	return t.Format("2006-01-02")
+}
 // AddDefaultData adds data for all templates
 func AddDefaultData(td *models.TemplateData, r *http.Request) *models.TemplateData {
 	td.Flash = app.Session.PopString(r.Context(), "flash")
