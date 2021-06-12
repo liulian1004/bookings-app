@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi"
@@ -479,7 +480,7 @@ func (m *Repository) AdminDashboard(w http.ResponseWriter, r *http.Request){
 }
 
 func (m *Repository) AdminNewReservation(w http.ResponseWriter, r *http.Request){
-	log.Println("in to rep_new")
+	
 	reservations, err := m.DB.AllNewReservation()
 	if err != nil {
 		helpers.ServerError(w, err)
@@ -487,14 +488,13 @@ func (m *Repository) AdminNewReservation(w http.ResponseWriter, r *http.Request)
 	}
 	data := make(map[string]interface{}) // not sure the value structure, use interface
 	data["reservations"] = reservations
-	log.Println("walk here_new")
+
 	render.Template(w,r, "admin-new-reservation.page.tmpl", &models.TemplateData{
 		Data: data,
 	})
 }
 
 func (m *Repository) AdminAllReservation(w http.ResponseWriter, r *http.Request){
-	log.Println("in to rep_all")
 	reservations, err := m.DB.AllReservation()
 	if err != nil {
 		helpers.ServerError(w, err)
@@ -502,7 +502,7 @@ func (m *Repository) AdminAllReservation(w http.ResponseWriter, r *http.Request)
 	}
 	data := make(map[string]interface{}) // not sure the value structure, use interface
 	data["reservations"] = reservations
-	log.Println("walk here_all")
+
 	render.Template(w,r, "admin-all-reservation.page.tmpl", &models.TemplateData{
 		Data: data,
 	})
@@ -513,5 +513,59 @@ func (m *Repository) AdminReservationCalender(w http.ResponseWriter, r *http.Req
 }
 
 func (m *Repository) AdminShowReservation(w http.ResponseWriter, r *http.Request) {
-	render.Template(w,r, "admin-reservation-show.page.tmpl", &models.TemplateData{})
+	//get the url and read the id 
+	exploded := strings.Split(r.RequestURI, "/") //=> split url
+	id, err := strconv.Atoi(exploded[4]) //string to int
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+	src := exploded[3] //= > get the src from all reservations or new reservation
+	log.Print(src)
+	stringMap := make(map[string]string)
+	stringMap["src"] = src
+	res, err := m.DB.GetReservationByID(id)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+	data := make(map[string]interface{})
+	data["reservation"] = res
+	render.Template(w,r, "admin-reservation-show.page.tmpl", &models.TemplateData{
+		StringMap:  stringMap,
+		Data: data,
+		Form: forms.New(nil),
+	})
+}
+//update reservation by admin
+func (m *Repository) AdminPostShowReservation(w http.ResponseWriter, r *http.Request) {
+	//get the url and read the id 
+	exploded := strings.Split(r.RequestURI, "/") //=> split url
+	id, err := strconv.Atoi(exploded[4]) //string to int
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+	src := exploded[3] //= > get the src from all reservations or new reservation
+	stringMap := make(map[string]string)
+	stringMap["src"] = src
+	res, err := m.DB.GetReservationByID(id)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+
+	res.FirstName = r.Form.Get("first_name")
+	res.LastName = r.Form.Get("last_name")
+	res.Email = r.Form.Get("email")
+	res.Phone = r.Form.Get("phone")
+
+	err = m.DB.UpdateReservation(res)
+
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+	m.App.Session.Put(r.Context(), "flash", "Changes saved")
+	http.Redirect(w,r, fmt.Sprintf("/admin/reservation-%s",src), http.StatusSeeOther)
 }

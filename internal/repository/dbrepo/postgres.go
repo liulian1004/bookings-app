@@ -221,8 +221,8 @@ func (m *postgresDBRepo)  AllReservation() ([] models.Reservation, error) {
 	var reservation [] models.Reservation
 
 	query := `
-	select r.id, r.first_name, r.last_name, r.email, r.phone, r.start_date, r.processed,
-	r.end_date, r.room_id, r.created_at, r.updated_at, rm.id, rm.room_name
+	select r.id, r.first_name, r.last_name, r.email, r.phone, r.start_date, 
+	r.end_date, r.room_id, r.created_at, r.updated_at, r.processed,rm.id, rm.room_name
 	from reservations r 
 	left join rooms rm on (r.room_id= rm.id)
 	order by r.start_date asc
@@ -234,7 +234,7 @@ func (m *postgresDBRepo)  AllReservation() ([] models.Reservation, error) {
 		return reservation, err
 	}
 	defer rows.Close()
-
+	// here the scan order shall be the same as query result
 	for rows.Next() {
 		 var i models.Reservation
 		 err := rows.Scan( 
@@ -350,4 +350,56 @@ func (m *postgresDBRepo) GetReservationByID(id int) (models.Reservation, error) 
 	)
 	return res, err
 
+}
+// update reservation in the admin dashboard
+func (m *postgresDBRepo) UpdateReservation(u models.Reservation) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second) // 3 seconds then cancel
+	defer cancel()
+
+	query := `
+		update reservations set first_name = $1, last_name = $2, email = $3, phone = $4, updated_at = $5 where id = $6
+	`
+	_, err := m.DB.ExecContext(ctx, query, 
+		u.FirstName,
+		u.LastName,
+		u.Email,
+		u.Phone,
+		time.Now(),
+		u.ID,
+	)
+	return err
+}
+
+//delete reservation in admin dashboard
+func (m *postgresDBRepo) DeleteReservation(id int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second) // 3 seconds then cancel
+	defer cancel()
+
+	query := `
+	delete from reservations where id = $1`
+
+	_, err := m.DB.ExecContext(ctx, query, id)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+//update new reservation to old reservation in the admin dashboard
+func (m *postgresDBRepo) UpdateProcessedForReservation(id, processed int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second) // 3 seconds then cancel
+	defer cancel()
+
+	query := `
+	update from reservations set processed = $1  where id = $1`
+
+	_, err := m.DB.ExecContext(ctx, query, processed, id)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
