@@ -15,6 +15,7 @@
         <!-- plugin css for this page -->
         <!-- End plugin css for this page -->
         <!-- inject:css -->
+        <link rel="stylesheet" type="text/css" href="https://unpkg.com/notie/dist/notie.min.css">
         <link rel="stylesheet" href="/static/admin/css/style.css">
         <!-- endinject -->
         <link rel="shortcut icon" href="/static/admin/images/favicon.png"/>
@@ -24,6 +25,9 @@
             }
             label {
                font-weight: bold; 
+            }
+            .notie-container {
+                z-index: 50000
             }
         </style>
 
@@ -142,9 +146,151 @@
     <script src="/static/admin/js/todolist.js"></script>
     <!-- endinject -->
     <!-- Custom js for this page-->
+    <script src="https://unpkg.com/notie"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10.15.5/dist/sweetalert2.min.js"></script>
     <script src="/static/admin/js/dashboard.js"></script>
     <!-- End custom js for this page-->
 
+     <script>
+        let attention = Prompt();
+        function notify(msg, msgType) {
+            notie.alert({
+                type: msgType,
+                text: msg,
+            })
+        }
+
+        function notifyModal(title, text, icon, confirmationButtonText) {
+            Swal.fire({
+                title: title,
+                html: text,
+                icon: icon,
+                confirmButtonText: confirmationButtonText
+            })
+        }
+
+        {{with .Error}}
+            notify("{{.}}", "error");
+        {{end}}
+
+        {{with .Flash}}
+        notify("{{.}}", "success");
+        {{end}}
+
+        {{with .Warning}}
+        notify("{{.}}", "warning");
+        {{end}}
+
+        function Prompt() {
+            let toast = function (c) {
+                const {
+                    msg = '',
+                    icon = 'success',
+                    position = 'top-end',
+
+                } = c;
+
+                const Toast = Swal.mixin({
+                    toast: true,
+                    title: msg,
+                    position: position,
+                    icon: icon,
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer)
+                        toast.addEventListener('mouseleave', Swal.resumeTimer)
+                    }
+                })
+
+                Toast.fire({})
+            }
+
+            let success = function (c) {
+                const {
+                    msg = "",
+                    title = "",
+                    footer = "",
+                } = c
+
+                Swal.fire({
+                    icon: 'success',
+                    title: title,
+                    text: msg,
+                    footer: footer,
+                })
+
+            }
+
+            let error = function (c) {
+                const {
+                    msg = "",
+                    title = "",
+                    footer = "",
+                } = c
+
+                Swal.fire({
+                    icon: 'error',
+                    title: title,
+                    text: msg,
+                    footer: footer,
+                })
+
+            }
+
+            async function custom(c) {
+                const {
+                    icon = "",
+                    msg = "",
+                    title = "",
+                    showConfirmButton = true,
+                } = c;
+
+                const {value: result} = await Swal.fire({
+                    icon:  icon,
+                    title: title,
+                    html: msg,
+                    backdrop: true,
+                    focusConfirm: false,
+                    showCancelButton: true,
+                    showConfirmButton: showConfirmButton,
+                    willOpen: () => {
+                        if (c.willOpen !== undefined) {
+                            c.willOpen();
+                        }
+                    },
+                    didOpen: () => {
+                        if (c.didOpen !== undefined) {
+                            c.didOpen();
+                        }
+                    },
+                })
+
+                if (result) {
+                    if (result.dismiss !== Swal.DismissReason.cancel) {
+                        if (result.value !== "") {
+                            if (c.callback !== undefined) {
+                                c.callback(result);
+                            }
+                        } else {
+                            c.callback(false);
+                        }
+                    } else {
+                        c.callback(false);
+                    }
+                }
+            }
+
+            return {
+                toast: toast,
+                success: success,
+                error: error,
+                custom: custom,
+            }
+        }
+    </script>
+    
     {{block "js" . }}
 
     {{end}}

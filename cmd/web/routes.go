@@ -45,6 +45,7 @@ func routes(app *config.AppConfig) http.Handler {
 		mux.Get("/reservation-new", handlers.Repo.AdminNewReservation)
 		mux.Get("/reservation-all", handlers.Repo.AdminAllReservation)
 		mux.Get("/reservation-calendar", handlers.Repo.AdminReservationCalender)
+		mux.Get("/process-reservation/{src}/{id}", handlers.Repo.AdminProcessReservation)
 		//display the single reservation
 		mux.Get("/reservation/{src}/{id}", handlers.Repo.AdminShowReservation)
 		mux.Post("/reservation/{src}/{id}", handlers.Repo.AdminPostShowReservation)
