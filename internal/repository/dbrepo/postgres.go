@@ -403,3 +403,78 @@ func (m *postgresDBRepo) UpdateProcessedForReservation(id, processed int) error 
 
 	return nil
 }
+
+func (m *postgresDBRepo) AllRooms() ([]models.Room, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second) // 3 seconds then cancel
+	defer cancel()
+	var rooms []models.Room
+	query := `select id, room_name, created_at, updated_at from rooms order by room_name`
+
+	rows, err := m.DB.QueryContext(ctx, query)
+
+	if err != nil {
+		return rooms, err
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var rm models.Room
+		err := rows.Scan( 
+			&rm.ID,
+			&rm.RoomName,
+			&rm.CreatedAt,
+			&rm.UpdatedAt,
+		)
+
+		if err != nil {
+			return rooms, err
+		}
+		rooms = append(rooms, rm)
+
+	}
+
+	if err = rows.Err(); err != nil {
+		return rooms, err
+	}
+	return rooms, nil
+}
+
+func (m *postgresDBRepo) GetReservationForRoomByDate(roomID int, start, end time.Time) ([]models.RoomRestriction, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second) // 3 seconds then cancel
+	defer cancel()
+	var restriction []models.RoomRestriction
+	// coalesce: for the column which value may be missed
+	// here once it's missed, use 0
+	query := `
+		select id, coalesce(reservation_id,0), restriction_id, room_id, start_date, end_date
+		from room_restrictions where $1 < end_date and $2 >= start_date
+		and room_id = $3
+	`
+	rows, err := m.DB.QueryContext(ctx, query, start, end, roomID)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var r models.RoomRestriction
+		err := rows.Scan(
+			&r.ID,
+			&r.ReservationID,
+			&r.RestrictionID,
+			&r.RoomID,
+			&r.StartDate,
+			&r.EndDate,
+		)
+		if err != nil {
+			return nil, err
+		}
+		restriction = append(restriction, r)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	return restriction, nil
+}

@@ -5,11 +5,18 @@
 {{end}}
 
 {{define "content"}}
+
+    {{$now := index .Data "now"}}
+    {{$rooms := index .Data "rooms"}}
+    {{$dim := index .IntMap "days_in_month"}}
+    {{$curMonth := index .StringMap "this_month" }}
+    {{$curYear := index .StringMap "this_month_year" }}
+
     <div class="col-md-12">
 
         <div class="text-center">
             <h3>
-                {{index .StringMap "this_month"}} {{index .StringMap "this_month_year"}}
+                {{formatDate $now "January"}} {{formatDate $now "2006"}}
             </h3> 
         </div>
 
@@ -27,6 +34,38 @@
 
     <!-- if you set up the float stuff, must add clearfix for working -->
         <div class="clearfix"></div>
+
+        {{range $rooms}}
+            {{$roomID := .ID}}
+            {{$blocks := index $.Data (printf "block_map_%d" .ID)}}
+            {{$reservations := index $.Data (printf "reservation_map_%d" .ID)}}
+
+            <h4 class="mt-4">{{.RoomName}}</h4>
+
+            <div class="table-response">
+                <table class="table table-bordered table-sm">
+                    <tr class="table-dark">
+                        {{range $index := iterate $dim}}
+                            <td class="text-center">
+                                {{add $index 1}}
+                            </td>
+                        {{end}}
+                    </tr>
+
+                    <tr>
+                        {{range $index := iterate $dim}}
+                            <td class="text-center" >
+                                <input
+                                    {{if gt (index $blocks (printf "%s-%s-%d" $curYear $curMonth (add $index 1))) 0 }}
+                                        checked
+                                    {{end}}
+                                        type="checkbox">
+                            </td>
+                         {{end}}
+                    </tr>
+                </table>
+            </div>
+        {{end}}
        
     </div>
 {{end}}
